@@ -1,0 +1,77 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ─── Core Auth ───────────────────────────────────────────────────────────────
+
+model User {
+  id         String      @id @default(cuid())
+  name       String
+  email      String      @unique
+  password   String
+  role       Role        @default(USER)
+  createdAt  DateTime    @default(now())
+  updatedAt  DateTime    @updatedAt
+  urls       Url[]
+  activities Activity[]
+  userInputs UserInput[]
+
+  @@map("users")
+}
+
+// ─── URL Shortener ───────────────────────────────────────────────────────────
+
+model Url {
+  id          String   @id @default(cuid())
+  originalUrl String
+  shortId     String   @unique
+  clicks      Int      @default(0)
+  userId      String?
+  user        User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+  createdAt   DateTime @default(now())
+
+  @@map("urls")
+}
+
+// ─── Activity Tracking ───────────────────────────────────────────────────────
+
+model Activity {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  action    String
+  metadata  Json     @default("{}")
+  ipAddress String?
+  userAgent String?
+  createdAt DateTime @default(now())
+
+  @@map("activities")
+}
+
+// ─── Tool Usage Tracking ─────────────────────────────────────────────────────
+
+model UserInput {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tool      String
+  input     Json     @default("{}")
+  output    Json?
+  ipAddress String?
+  userAgent String?
+  createdAt DateTime @default(now())
+
+  @@map("user_inputs")
+}
+
+// ─── Enums ───────────────────────────────────────────────────────────────────
+
+enum Role {
+  USER
+  ADMIN
+}
